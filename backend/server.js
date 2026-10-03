@@ -6,49 +6,66 @@ const connectDB = require("./config/db");
 
 const app = express();
 
-//Subjects
-const subjectRoutes = require("./routes/subjectRoutes");
-
-
-// Middleware
-app.use(cors());
-app.use(express.json());
-
-// DB Connect
+// ==========================================
+// 🔹 DATABASE CONNECTION & CORE MODELS
+// ==========================================
 connectDB();
 
-// Routes
+// Pre-register models to prevent Mongoose populate MissingSchemaError
+require("./models/User");
+require("./models/Department");
+require("./models/Semester");
+
+// ==========================================
+// 🔹 MIDDLEWARE
+// ==========================================
+app.use(cors());
+
+// 🔹 Increased payload limits to allow Base64 profile picture uploads
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+
+// ==========================================
+// 🔹 ROUTES
+// ==========================================
 app.use("/api/auth", require("./routes/authRoutes"));
-
-//Subject Route
-app.use("/api/subjects", subjectRoutes);
-
-//Attdences Route
-// app.use("/api/students", require("./routes/"));  
-app.use("/api/attendance", require("./routes/attendanceRoutes"));
-
-//Result Route
-app.use("/api/results", require("./routes/resultRoutes"));
-
-//chek usig get
 app.use("/api/users", require("./routes/userRoutes"));
-
-//Adde new Routes
+app.use("/api/subjects", require("./routes/subjectRoutes"));
+app.use("/api/attendance", require("./routes/attendanceRoutes"));
+app.use("/api/results", require("./routes/resultRoutes"));
 app.use("/api/departments", require("./routes/departmentRoutes"));
 
+// ⚠️ Note: If your file is named 'semsetrRoute.js', keep this line:
+// app.use("/api/semesters", require("./routes/semsetrRoute"));
+// If you renamed the file to 'semesterRoutes.js', use this line:
 app.use("/api/semesters", require("./routes/semesterRoutes"));
 
 app.use("/api/divisions", require("./routes/divisionRoutes"));
-
 app.use("/api/notices", require("./routes/noticeRoutes"));
-
 app.use("/api/leaves", require("./routes/leaveRoutes"));
-
 app.use("/api/timetables", require("./routes/timetableRoutes"));
 
+// Health check endpoint
 app.get("/", (req, res) => {
-  res.send("API Running ");
+  res.send("API Running 🚀");
 });
 
+// ==========================================
+// 🔹 404 & ERROR HANDLING MIDDLEWARE
+// ==========================================
+app.use((req, res, next) => {
+  res.status(404).json({ message: `Route not found: ${req.originalUrl}` });
+});
+
+app.use((err, req, res, next) => {
+  console.error("GLOBAL SERVER ERROR:", err.stack);
+  res.status(err.status || 500).json({
+    message: err.message || "Internal Server Error",
+  });
+});
+
+// ==========================================
+// 🔹 SERVER INITIALIZATION
+// ==========================================
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on ${PORT}`));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
